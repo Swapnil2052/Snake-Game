@@ -1,4 +1,6 @@
 const Head=require('Head');
+let Globals=require('Globals');
+
 cc.Class({
     extends: cc.Component,
 
@@ -11,7 +13,11 @@ cc.Class({
       head:{
         default:null,
         type:Head
-      }
+      },
+      score:{
+        default:null,
+        type:cc.Label
+    } 
     },
 
     init(game){
@@ -19,6 +25,7 @@ cc.Class({
         this.head.init(this);
         this.node.setPosition(cc.v2(0, 0));
         this.arr=this.game.bg.arr;
+        this.tapSound=this.game.tapSound;
         this.schedule(this.moveSnake, this.moveInterval);
         cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.onKeyDown, this);
     },
@@ -27,18 +34,22 @@ cc.Class({
     onKeyDown(event){
             switch (event.keyCode) {
                 case cc.macro.KEY.left:
+                    this.tapSound.play();
                     if(this.direction===1)return;
                     this.direction=3;
                     break;
                 case cc.macro.KEY.right:
+                    this.tapSound.play();
                     if(this.direction===3)return;
                     this.direction=1;
                     break;
                 case cc.macro.KEY.up:
+                    this.tapSound.play();
                     if(this.direction===2)return;
                     this.direction=0;
                     break;
                 case cc.macro.KEY.down:
+                    this.tapSound.play();
                     if(this.direction===0)return;
                     this.direction=2;
                     break;
@@ -75,8 +86,21 @@ cc.Class({
         else if(headPosition.x>cc.winSize.width/2)headPosition.x=-cc.winSize.width/2;
         else if(headPosition.y<-cc.winSize.height/2)headPosition.y=cc.winSize.height/2;
         else if(headPosition.y>cc.winSize.height/2)headPosition.y=-cc.winSize.height/2;
+      
+        //Game End 
+        if(!this.checkArray(headPosition,this.arr)){
 
-        if(!this.checkArray(headPosition,this.arr))this.node.destroy();
+            this.score.string=Globals.score;
+            Globals.highscore = Math.max(Globals.score, Globals.highscore);
+
+       
+            this.unschedule(this.moveSnake);
+
+            this.blinkCount=0;
+            this.schedule(this.blink,0.5);
+            
+        }
+
 
         this.node.children[0].setPosition(headPosition);
       
@@ -114,4 +138,15 @@ cc.Class({
         let coordinates=this.game.bg.getGridCoordinatesByPosition(position);
         arr[coordinates.y][coordinates.x]=0;
       },
+
+      blink(){
+        this.node.opacity=this.node.opacity===255? 0:255;
+        this.blinkCount++;
+
+        if(this.blinkCount>6){
+            this.unschedule(this.blink);
+            this.game.node.emit('end');
+        }
+      }
+     
 });
